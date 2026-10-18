@@ -79,6 +79,13 @@ uint32_t bathUntil = 0;
 bool bathPending = false;
 struct { int16_t x, y; uint8_t r, ph; } bubbles[14];
 uint32_t feedMenuUntil = 0;   // selector de comida abierto hasta este millis
+StrId actionMsgId = S_HAPPY;  // etiqueta de la ultima accion elegida
+uint32_t actionMsgUntil = 0;  // visible en la cabecera hasta este millis
+
+void setActionMsg(StrId id, uint32_t ms = 2500) {
+  actionMsgId = id;
+  actionMsgUntil = millis() + ms;
+}
 
 // minijuego "toques": mantener la pokeball en el aire
 bool gameOpen = false;
@@ -271,7 +278,10 @@ void loop() {
   // (incluye el caso de cumplir al despertar). canEvolveNow es false durmiendo.
   static bool wasEvoReady = false;
   bool evoReady = pet.wantEvolveButton();
-  if (evoReady && !wasEvoReady) sfxPlay(SFX_MEDAL);
+  if (evoReady && !wasEvoReady) {
+    sfxPlay(SFX_MEDAL);
+    voxPlay(VOX_EVO_READY);
+  }
   wasEvoReady = evoReady;
   // aviso sombrio cuando el bicho esta a punto de escaparse por abandono
   static bool wasRunReady = false;
@@ -427,6 +437,13 @@ void handleSerial() {
     Serial.println("DONE");
   } else if (line == "BEEP") {
     sfxPlay(SFX_HATCH);  // prueba de audio
+    voxPlay(VOX_HATCH);
+    Serial.println("DONE");
+  } else if (line.startsWith("VOX ")) {
+    voxPlay((uint8_t)line.substring(4).toInt());
+    Serial.println("DONE");
+  } else if (line.startsWith("VOXDEX ")) {
+    voxPlayDex((int16_t)line.substring(7).toInt());
     Serial.println("DONE");
   } else if (line == "ABANDON") {
     pet.dbgRunawayReady();  // fuerza el estado "lista para escaparse" (test del boton)
@@ -524,6 +541,8 @@ void handleTouch() {
         !pet.isEgg() && !confirmUntil && !pet.ceremony) {
       confirmUntil = millis() + 10000;
       holdFired = true;
+      sfxPlay(SFX_TAP);
+      voxPlay(VOX_RELEASE_Q);
     }
   } else if (wasPressed) {  // levanta el dedo: resolver gesto
     lastInteract = millis();
@@ -602,6 +621,7 @@ void onTap(int16_t x, int16_t y) {
       if (x >= 70 && x <= 396 && y >= ry && y <= ry + STARTER_ROW_H) {
         pet.chooseStarter(STARTER_DEX[i]);
         sfxPlay(SFX_TAP);
+        voxPlayDex(STARTER_DEX[i]);
         break;
       }
     }
@@ -624,6 +644,8 @@ void onTap(int16_t x, int16_t y) {
     if (cardPage == 0 && y < 84) openKeyboard();  // tocar el nombre = renombrar
     else if (cardPage == 1 && y >= 300 && y <= 340 && x >= 96 && x <= 370) {
       cardOpen = false;            // boton ENTRENAR FUERZA
+      sfxPlay(SFX_TAP);
+      voxPlay(VOX_TRAIN);
       startSack();
     } else {
       cardOpen = false;
@@ -639,10 +661,10 @@ void onTap(int16_t x, int16_t y) {
     bool b2 = (x >= 93 && x <= 373 && y >= 268 && y <= 320);  // mantener / quedaros
     if (choiceKind == 1) {                 // evolucion
       if (b1) { int16_t old = pet.speciesId; pet.evolve(); evoPmd.load(old, pet.shiny); }
-      else if (b2) pet.declineEvolve();
+      else if (b2) { pet.declineEvolve(); sfxPlay(SFX_TAP); voxPlay(VOX_KEEP_FORM); setActionMsg(S_EVO_KEEP); }
     } else if (choiceKind == 2) {          // despedida
       if (b1) pet.startFarewell();
-      else if (b2) pet.declineFarewell();
+      else if (b2) { pet.declineFarewell(); sfxPlay(SFX_TAP); voxPlay(VOX_STAY); setActionMsg(S_FAR_STAY); }
     }
     choiceKind = 0;
     return;
@@ -657,29 +679,44 @@ void onTap(int16_t x, int16_t y) {
   if (feedMenuUntil) {       // selector de comida
     if (timeLeft(feedMenuUntil) && y >= 288 && y <= 352 && x >= 101 && x <= 365) {
       int item = (x - 101) / 66;
-      if (item == 3) pet.feedCandy();
-      else pet.feedBerry(item);
       sfxPlay(SFX_EAT);
+      if (item == 3) {
+        pet.feedCandy();
+        voxPlay(VOX_CANDY);
+        setActionMsg(S_CANDY);
+      } else {
+        bool loved = pet.lovesBerry(item);
+        pet.feedBerry(item);
+        voxPlay(loved ? VOX_LIKES : (uint8_t)(VOX_BERRY_R + item));
+        setActionMsg(loved ? S_LIKES : (StrId)(S_BERRY_RED + item));
+      }
     }
     feedMenuUntil = 0;
     return;
   }
   if (pet.isEgg()) {
     pet.eggTap();
-    sfxPlay(SFX_TAP);
+    if (pet.isEgg()) sfxPlay(SFX_TAP);
     return;
   }
   // boton de evolucion: abre el dialogo evolucionar/mantener
   if (pet.wantEvolveButton() && x >= EVO_BTN_X && x <= EVO_BTN_X + EVO_BTN_W &&
       y >= EVO_BTN_Y && y <= EVO_BTN_Y + EVO_BTN_H) {
     choiceKind = 1; choiceUntil = millis() + 12000;
+    sfxPlay(SFX_TAP);
+    voxPlay(VOX_EVO_READY);
     return;
   }
   // botones de final (mismo recuadro): escapada directa; despedida abre dialogo
   if (x >= FAR_BTN_X && x <= FAR_BTN_X + FAR_BTN_W &&
       y >= FAR_BTN_Y && y <= FAR_BTN_Y + FAR_BTN_H) {
     if (pet.canRunawayNow()) { pet.startRunaway(); return; }
-    if (pet.wantFarewellButton()) { choiceKind = 2; choiceUntil = millis() + 12000; return; }
+    if (pet.wantFarewellButton()) {
+      choiceKind = 2; choiceUntil = millis() + 12000;
+      sfxPlay(SFX_TAP);
+      voxPlay(VOX_FAREWELL_Q);
+      return;
+    }
   }
   for (int i = 0; i < 4; i++) {
     int dx = x - buttons[i].cx, dy = y - buttons[i].cy;
@@ -687,13 +724,35 @@ void onTap(int16_t x, int16_t y) {
       Serial.printf("BTN %d\n", i);
       sfxPlay(SFX_TAP);
       if (i == 0) {
-        if (!pet.sleeping) feedMenuUntil = millis() + 6000;
+        if (!pet.sleeping) {
+          feedMenuUntil = millis() + 6000;
+          voxPlay(VOX_FEED);
+          setActionMsg(S_ACT_FEED, 6000);
+        }
       } else if (i == 1) {
-        startGame();
+        if (!pet.sleeping) {
+          voxPlay(VOX_PLAY);
+          setActionMsg(S_ACT_PLAY);
+          startGame();
+        }
       } else if (i == 2) {
-        pet.toggleLight();
+        if (pet.sleeping) {
+          pet.toggleLight();
+          audioSetSleeping(false);  // enciende el ampli antes de hablar "Acordou!"
+          sfxPlay(SFX_TAP);
+          voxPlay(VOX_WAKE);
+          setActionMsg(S_ACT_WAKE);
+        } else {
+          voxPlay(VOX_SLEEP);       // anuncia antes de apagar el ampli
+          setActionMsg(S_ACT_SLEEP);
+          pet.toggleLight();
+        }
       } else {
-        startBath();
+        if (!pet.sleeping) {
+          voxPlay(VOX_BATH);
+          setActionMsg(S_ACT_BATH, 3000);
+          startBath();
+        }
       }
       return;
     }
@@ -702,7 +761,10 @@ void onTap(int16_t x, int16_t y) {
   if (inPetZone(x, y)) {
     Serial.println("PET");
     pet.caress();
-    if (!pet.sleeping) sfxPlay(SFX_HEART);
+    if (!pet.sleeping) {
+      sfxPlay(SFX_HEART);
+      voxPlay(VOX_PET);
+    }
   }
 }
 
@@ -1490,7 +1552,7 @@ void drawClockBtn(int x, int y, const char *l) {
 #define LANG_PILL_H 30
 #define LANG_PILL_X 336          // pildora de idioma (cicla LANG_COUNT al tocar)
 #define LANG_PILL_W 96
-static const char *const LANG_CODES[LANG_COUNT] = { "ES", "EN", "FR", "DE", "IT", "PT", "JA", "KO" };
+static const char *const LANG_CODES[LANG_COUNT] = { "ES", "EN", "FR", "DE", "IT", "PT", "BR", "JA", "KO" };
 
 void renderClock() {
   gfx->fillScreen(RGB565_BLACK);
@@ -2012,6 +2074,7 @@ void galleryTap(int16_t x, int16_t y) {
   if (dex > 151) return;
   galleryDetail = dex;
   galleryPmd.load(dex, pet.isShinyRegistered(dex));
+  if (pet.isRegistered(dex)) voxPlayDex(dex);
 }
 
 void drawBattery() {
@@ -2575,7 +2638,8 @@ const char *eggMsg() {
 
 const char *statusMsg() {
   if (pet.evolving()) return T(S_EVOLVING);
-  if (bathUntil) return "Splish splash!";  // onomatopeya universal
+  if (timeLeft(actionMsgUntil)) return T(actionMsgId);
+  if (bathUntil) return T(S_ACT_BATH);
   if (pet.sleeping) return "Zzz...";
   if (pet.eating()) return T(S_EATING);
   if (pet.showHeart()) return T(S_LIKES);

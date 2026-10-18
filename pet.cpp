@@ -136,7 +136,10 @@ void Pet::tick() {
     return;
   }
 
-  if (ageMinutes % MINUTES_PER_LEVEL == 0) sfxPlay(SFX_LEVEL);  // subio de nivel (despierto)
+  if (ageMinutes % MINUTES_PER_LEVEL == 0) {
+    sfxPlay(SFX_LEVEL);  // subio de nivel (despierto)
+    voxPlay(VOX_LEVEL_UP);
+  }
 
   fullness = clamp100(fullness - 2);
   energy = clamp100(energy - 1);
@@ -310,7 +313,10 @@ void Pet::checkMedals() {
     for (uint16_t m = gained; m; m &= (m - 1)) totalMedals++;
     newMedal = gained;
     medalUntil = millis() + 4000;
-    if (!sleeping) sfxPlay(SFX_MEDAL);
+    if (!sleeping) {
+      sfxPlay(SFX_MEDAL);
+      voxPlay(VOX_MEDAL);
+    }
     save();
   }
 }
@@ -362,6 +368,7 @@ void Pet::startFarewell() {
   ceremonyUntil = millis() + CEREMONY_MS;
   heartUntil = ceremonyUntil;  // corazones durante toda la despedida
   sfxPlay(SFX_BYE);
+  voxPlay(VOX_FAREWELL);
   save();
 }
 
@@ -371,6 +378,7 @@ void Pet::startRunaway() {
   ceremony = CER_RUNAWAY;
   ceremonyUntil = millis() + CEREMONY_MS;
   sfxPlay(SFX_BYE);
+  voxPlay(VOX_RUNAWAY);
   save();
 }
 
@@ -381,6 +389,7 @@ void Pet::release() {
   ceremonyUntil = millis() + CEREMONY_MS;
   heartUntil = ceremonyUntil;
   sfxPlay(SFX_BYE);
+  voxPlay(VOX_GOODBYE);
   save();
 }
 
@@ -401,6 +410,8 @@ void Pet::hatch() {
   registerSpecies(speciesId);  // criado = registrado en la pokedex
   checkMedals();     // por si nace ya en forma final (legendario)
   sfxPlay(SFX_HATCH);
+  voxPlay(VOX_HATCH);
+  voxPlayDex(speciesId);
   save();
 }
 
@@ -431,6 +442,8 @@ void Pet::evolve() {
   speciesId = next;
   registerSpecies(speciesId);
   sfxPlay(SFX_EVOLVE);
+  voxPlay(VOX_EVOLVING);
+  voxPlayDex(speciesId);
   evolveUntil = millis() + EVOLVE_ANIM_MS;
   save();
 }

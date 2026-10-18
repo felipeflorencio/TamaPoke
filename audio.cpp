@@ -1,20 +1,32 @@
 #include "audio.h"
 #include "pin_config.h"
+#include "i18n.h"
+#include "sdmon.h"
+#include "voices_ptbr.h"
 #include <Arduino.h>
 #include <Wire.h>
 #include <ESP_I2S.h>
 #include <Preferences.h>
+#include <FS.h>
+#include <SD_MMC.h>
 
 // ---------------------------------------------------------------------------
 // Audio del TamaPoke: códec ES8311 (DAC -> amplificador PA -> altavoz) por I2S.
 // Init del ES8311 portado del driver oficial de Espressif (esp-bsp), fijado a
 // MCLK=4.096MHz (256*fs), 16kHz, 16-bit, esclavo I2S. Los efectos son tonos
-// cuadrados (estilo Game Boy) sintetizados en una tarea aparte para no
-// bloquear el loop de juego.
+// cuadrados (estilo Game Boy) + clips de voz hablada en PT-BR sintetizados en
+// una tarea aparte para no bloquear el loop de juego.
 // ---------------------------------------------------------------------------
 
 #define ES8311_ADDR 0x18
 #define SAMPLE_RATE 16000
+
+// Codigos en la cola de audio (uint16_t):
+//   0 .. SFX_COUNT-1             -> efecto de tono cuadrado
+//   0x0100 | voxId               -> frase hablada en flash (VOX_CLIPS)
+//   0x0200 | dexNum (1..151)     -> nombre hablado de especie en SD (/mons/voices.bin)
+#define AUDIO_TAG_VOX 0x0100
+#define AUDIO_TAG_DEX 0x0200
 
 static I2SClass i2s;
 static bool gReady = false;
@@ -134,13 +146,91 @@ static void playTone(uint16_t f, uint16_t ms) {
   }
 }
 
+// reproduce un clip PCM de 8 bits con signo a 16 kHz desde Flash/PSRAM
+static void playPcm8(const int8_t *pcm, uint32_t total) {
+  uint32_t done = 0;
+  while (done < total && gOn && !gSleeping) {
+    uint32_t n = total - done;
+    if (n > 256) n = 256;
+    for (uint32_t i = 0; i < n; i++) {
+      int16_t s = (int16_t)pcm[done + i] * 180;  // ganancia limpia sin saturar
+      uint32_t idx = done + i;
+      if (idx < 64) s = (int16_t)((int32_t)s * idx / 64);
+      else if (idx > total - 96) s = (int16_t)((int32_t)s * (total - idx) / 96);
+      buf[i * 2] = s;
+      buf[i * 2 + 1] = s;
+    }
+    i2s.write((uint8_t *)buf, n * 4);
+    done += n;
+  }
+}
+
+// reproduce el nombre de un Pokemon desde /mons/voices.bin en la SD (formato TPVX)
+static void playSdDexVoice(uint16_t dexNum) {
+  if (!sdReady || dexNum < 1 || dexNum > 151) return;
+  File f = SD_MMC.open("/mons/voices.bin", FILE_READ);
+  if (!f) return;
+  uint8_t hdr[6];
+  if (f.read(hdr, 6) != 6 || memcmp(hdr, "TPVX", 4) != 0) {
+    f.close();
+    return;
+  }
+  uint16_t count = hdr[4] | (hdr[5] << 8);
+  if (dexNum > count) {
+    f.close();
+    return;
+  }
+  uint32_t entryOff = 6 + (uint32_t)(dexNum - 1) * 8;
+  uint8_t meta[8];
+  if (!f.seek(entryOff) || f.read(meta, 8) != 8) {
+    f.close();
+    return;
+  }
+  uint32_t off, len;
+  memcpy(&off, meta, 4);
+  memcpy(&len, meta + 4, 4);
+  if (len == 0 || len > 64000 || !f.seek(off)) {
+    f.close();
+    return;
+  }
+  int8_t raw[256];
+  uint32_t done = 0;
+  while (done < len && gOn && !gSleeping) {
+    uint32_t n = len - done;
+    if (n > 256) n = 256;
+    if (f.read((uint8_t *)raw, n) != n) break;
+    for (uint32_t i = 0; i < n; i++) {
+      int16_t s = (int16_t)raw[i] * 180;
+      uint32_t idx = done + i;
+      if (idx < 64) s = (int16_t)((int32_t)s * idx / 64);
+      else if (idx > len - 96) s = (int16_t)((int32_t)s * (len - idx) / 96);
+      buf[i * 2] = s;
+      buf[i * 2 + 1] = s;
+    }
+    i2s.write((uint8_t *)buf, n * 4);
+    done += n;
+  }
+  f.close();
+}
+
 static void audioTask(void *) {
-  uint8_t id;
+  uint16_t cmd;
   for (;;) {
-    if (xQueueReceive(gQ, &id, portMAX_DELAY) && gOn && !gSleeping && gReady &&
-        id < SFX_COUNT) {
-      const SfxDef &d = SFX[id];
-      for (uint8_t i = 0; i < d.len; i++) playTone(d.n[i].f, d.n[i].ms);
+    if (xQueueReceive(gQ, &cmd, portMAX_DELAY) && gOn && !gSleeping && gReady) {
+      if (cmd & AUDIO_TAG_VOX) {
+        uint8_t vid = cmd & 0xFF;
+        if (vid < VOX_COUNT) {
+          playTone(0, 25);  // breve pausa tras el efecto retro
+          playPcm8(VOX_CLIPS[vid].data, VOX_CLIPS[vid].len);
+        }
+      } else if (cmd & AUDIO_TAG_DEX) {
+        uint16_t dex = cmd & 0xFF;
+        playTone(0, 30);
+        playSdDexVoice(dex);
+      } else if (cmd < SFX_COUNT) {
+        const SfxDef &d = SFX[cmd];
+        for (uint8_t i = 0; i < d.len; i++) playTone(d.n[i].f, d.n[i].ms);
+      }
     }
   }
 }
@@ -165,13 +255,28 @@ void audioBegin() {
 
   gReady = true;
   updateAmplifierPower();
-  gQ = xQueueCreate(8, sizeof(uint8_t));
+  gQ = xQueueCreate(12, sizeof(uint16_t));
   xTaskCreatePinnedToCore(audioTask, "audio", 4096, nullptr, 1, nullptr, 0);
   sfxPlay(SFX_HATCH);  // jingle de arranque (confirma que suena)
 }
 
 void sfxPlay(uint8_t id) {
-  if (gReady && gOn && gQ) xQueueSend(gQ, &id, 0);  // descarta si la cola esta llena
+  if (!gReady || !gOn || !gQ) return;
+  uint16_t cmd = id;
+  xQueueSend(gQ, &cmd, 0);  // descarta si la cola esta llena
+}
+
+void voxPlay(uint8_t id) {
+  if (!gReady || !gOn || !gQ || id >= VOX_COUNT) return;
+  if (gLang != LANG_PT_BR && gLang != LANG_PT) return;  // voces grabadas en portugues
+  uint16_t cmd = AUDIO_TAG_VOX | id;
+  xQueueSend(gQ, &cmd, 0);
+}
+
+void voxPlayDex(int16_t dexNum) {
+  if (!gReady || !gOn || !gQ || dexNum < 1 || dexNum > 151) return;
+  uint16_t cmd = AUDIO_TAG_DEX | (uint16_t)dexNum;
+  xQueueSend(gQ, &cmd, 0);
 }
 
 void audioSetEnabled(bool on) {

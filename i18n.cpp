@@ -35,6 +35,7 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "Evolucionar?", "Mantener forma", "Despedirse?", "Despedirse", "Quedaros juntos",
     "Elige tu inicial",
     "Sin sprites", "C\240rgalos en la SD",
+    "Alimentar", "Jugar!", "A dormir...", "Despierto!", "Al ba\244o!", "CHUCHE",
   },
   // ---------------- EN ----------------
   {
@@ -64,6 +65,7 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "Evolve?", "Keep form", "Say goodbye?", "Goodbye", "Stay together",
     "Choose your starter",
     "No sprites", "Load them onto the SD",
+    "Feed", "Play!", "Bedtime...", "Awake!", "Bath time!", "CANDY",
   },
   // ---------------- FR ----------------
   {
@@ -93,6 +95,7 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "\220voluer?", "Garder forme", "Dire adieu?", "Adieu", "Rester ensemble",
     "Choisis ton starter",
     "Pas de sprites", "Charge-les sur la SD",
+    "Nourrir", "Jouer!", "Au lit...", "R\202veill\202!", "Au bain!", "BONBON",
   },
   // ---------------- DE ----------------
   // El aleman si lleva dieresis: la fuente 5x7 del firmware es una tabla CP437
@@ -127,6 +130,7 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "Entwickeln?", "Form behalten", "Abschied?", "Leb wohl", "Zusammen bleiben",
     "W\204hle deinen Starter",
     "Keine Sprites", "Auf die SD laden",
+    "F\201ttern", "Spielen!", "Schlafen...", "Wach!", "Baden!", "BONBON",
   },
   // ---------------- IT ----------------
   {
@@ -156,8 +160,9 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "Evolvere?", "Mantieni forma", "Salutare?", "Addio", "Restare insieme",
     "Scegli l'iniziale",
     "Senza sprite", "Caricali sulla SD",
+    "Nutrire", "Giocare!", "A nanna...", "Sveglio!", "Bagnetto!", "DOLCE",
   },
-  // ---------------- PT ----------------
+  // ---------------- PT (Portugal) ----------------
   {
     "Evoluindo!", "Nham nham!", "Ele gosta!", "Est\240 com fome!", "Precisa de banho!",
     "Exausto...", "Triste...", "Um pouco gordinho...", "\220 SHINY!!", "Est\240 feliz",
@@ -185,6 +190,37 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "Evoluir?", "Manter forma", "Despedir?", "Adeus", "Ficar juntos",
     "Escolhe o inicial",
     "Sem sprites", "Carrega-os no SD",
+    "Alimentar", "Jogar!", "A dormir...", "Acordou!", "Hora do banho!", "DOCE",
+  },
+  // ---------------- PT_BR (Brasil) ----------------
+  {
+    "Evoluindo!", "Nham nham!", "Ele adorou!", "Est\240 com fome!", "Precisa de banho!",
+    "Exausto...", "Triste...", "Meio gordinho...", "\220 SHINY!!", "Est\240 feliz",
+    "OBRIGADO! At\202 sempre", "Ele fugiu...", "Tchau! Acenando...",
+    "OVO", "Ovo lend\240rio!?", "Ovo raro!", "Toque no ovo...", "Mexeu!", "Quase l\240!",
+    "POKEDEX %u/151",
+    "%s%s Niv.%u",
+    "Soltar %s?", "SIM", "NAO",
+    "%u GOLPES", "FOR\200A +%u", "NOVO RECORDE!", "RECORDE: %u", "BATA RAPIDO!",
+    "PONTOS: %u", "Que alegria!", "+alegria",
+    "AJUSTAR HORA", "HORA", "MIN", "deslize p/ cima: cancelar", "Idioma",
+    "MEDALHA!", "OTIMO!", "%u DIAS SEGUIDOS!",
+    "SEQ %u  rec %u", "LA\200O", "FRUTA ???", "FRUTA VERMELHA", "FRUTA AZUL", "FRUTA VERDE",
+    "%s   IDADE %lud", "toque no nome: renomear",
+    "BATALHA", "ATQ", "DEF", "VEL", "PES", "TREINAR FOR\200A",
+    "MEDALHAS %d/%d", "toque: voltar",
+    "NOME:", "toque para voltar",
+    "COM", "ALE", "ENE", "HIG",
+    "REC %u",
+    "PROGRESSO", "Niv.%u", "%u min p/ Niv.%u", "EVOLUCAO", "Forma final",
+    "Pronto p/ evoluir!", "Tudo >=40 p/ evoluir",
+    "Evolui em %u niv.", "Descuidos: %u",
+    "SOM ON", "SOM OFF",
+    "EVOLUIR", "%s quer te dizer algo...", "%s se sente abandonado...",
+    "Evoluir?", "Manter forma", "Se despedir?", "Adeus", "Ficar juntos",
+    "Escolha seu inicial",
+    "Sem sprites", "Carregue no SD",
+    "Alimentar", "Brincar!", "Hora de dormir...", "Acordou!", "Hora do banho!", "DOCE",
   },
   // ---------------- JA ----------------
   {
@@ -237,6 +273,7 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "さいしょのポケモンをえらぶ",
 
     "スプライトなし", "SDにいれてください",
+    "ごはん", "あそぶ！", "おやすみ...", "おきた！", "おふろ！", "おかし",
   },
   // ---------------- KO ----------------
   // Los especificadores van en el MISMO ORDEN que en la fila inglesa aunque
@@ -271,6 +308,7 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "진화할까요?", "형태 유지", "작별할까요?", "작별", "계속 함께",
     "스타터를 선택하세요",
     "스프라이트 없음", "SD 카드에 넣어주세요",
+    "먹이 주기", "놀기!", "잘 시간...", "일어났어요!", "목욕 시간!", "사탕",
   },
 };
 
@@ -282,6 +320,7 @@ static const char *const MED_NAME[LANG_COUNT][MED_COUNT] = {
   { "Lv.10", "Lv.25", "Lv.50", "BEERE", "7 SERIE", "BINDUNG", "ENDFORM", "FIT" },
   { "Lv.10", "Lv.25", "Lv.50", "BACCA", "SERIE 7", "LEGAME", "FORMA MAX", "IN FORMA" },
   { "Niv.10", "Niv.25", "Niv.50", "BAGA", "SEQ 7", "LACO", "FORMA MAX", "EM FORMA" },
+  { "Niv.10", "Niv.25", "Niv.50", "FRUTA", "SEQ 7", "LACO", "FORMA MAX", "EM FORMA" },
   { "Lv.10", "Lv.25", "Lv.50", "きのみ", "7にち", "なかよし", "さいしゅう", "げんき" },
   { "Lv.10", "Lv.25", "Lv.50", "열매", "연속 7일", "유대", "최고 컨디션", "건강함" },
 };
@@ -292,6 +331,7 @@ static const char *const MED_LBL[LANG_COUNT][MED_COUNT] = {
   { "Lv10", "Lv25", "Lv50", "BEERE", "7TAGE", "BND", "END", "FIT" },
   { "Lv10", "Lv25", "Lv50", "BACCA", "7GG", "LEG", "MAX", "FIT" },
   { "Niv10", "Niv25", "Niv50", "BAGA", "7DIAS", "LACO", "MAX", "FIT" },
+  { "Niv10", "Niv25", "Niv50", "FRUTA", "7DIAS", "LACO", "MAX", "FIT" },
   { "Lv10", "Lv25", "Lv50", "きのみ", "7にち", "なかよし", "しんか", "げんき" },
   { "Lv10", "Lv25", "Lv50", "열매", "7일", "유대", "최고", "건강" },
 };
@@ -307,6 +347,8 @@ static const char *const MED_DSC[LANG_COUNT][MED_COUNT] = {
   { "LIVELLO 10", "LIVELLO 25", "LIVELLO 50", "BACCA TROVATA",
     "SERIE 7 GIORNI", "LEGAME MAX", "FORMA FINALE", "IN FORMA" },
   { "NIVEL 10", "NIVEL 25", "NIVEL 50", "BAGA ACHADA",
+    "SEQ 7 DIAS", "LACO MAX", "FORMA FINAL", "EM FORMA" },
+  { "NIVEL 10", "NIVEL 25", "NIVEL 50", "FRUTA ACHADA",
     "SEQ 7 DIAS", "LACO MAX", "FORMA FINAL", "EM FORMA" },
   { "レベル 10", "レベル 25", "レベル 50", "きのみ はっけん",
     "7にち れんぞく", "なかよし MAX", "さいしゅうしんか", "げんきいっぱい" },

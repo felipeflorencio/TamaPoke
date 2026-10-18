@@ -8,7 +8,7 @@
 #include <string.h>
 #include <vector>
 
-static const char *LANG_NAME[LANG_COUNT] = { "ES", "EN", "FR", "DE", "IT", "PT", "JA", "KO" };
+static const char *LANG_NAME[LANG_COUNT] = { "ES", "EN", "FR", "DE", "IT", "PT", "PT_BR", "JA", "KO" };
 
 // extrae la firma de los especificadores de printf de una cadena: "%lud" -> "lu"
 static std::vector<std::string> specs(const char *s) {
@@ -221,4 +221,28 @@ TEST(i18n, setLang_rechaza_valores_fuera_de_rango) {
   setLang((Lang)250);
   CHECK_EQ((int)gLang, (int)LANG_FR);
   gLang = LANG_DEFAULT;
+}
+
+TEST(i18n, pt_br_es_el_idioma_por_defecto_y_no_mezcla_con_pt_pt) {
+  CHECK_EQ((int)LANG_DEFAULT, (int)LANG_PT_BR);
+  gLang = LANG_PT;
+  CHECK_EQ(std::string(T(S_BERRY_RED)), std::string("BAGA VERMELHA"));
+  CHECK_EQ(std::string(T(S_ACT_PLAY)), std::string("Jogar!"));
+  gLang = LANG_PT_BR;
+  CHECK_EQ(std::string(T(S_BERRY_RED)), std::string("FRUTA VERMELHA"));
+  CHECK_EQ(std::string(T(S_ACT_PLAY)), std::string("Brincar!"));
+  CHECK_EQ(std::string(T(S_ACT_FEED)), std::string("Alimentar"));
+  CHECK_EQ(std::string(T(S_ACT_BATH)), std::string("Hora do banho!"));
+  gLang = LANG_DEFAULT;
+}
+
+#include "../audio.h"
+#include "../voices_ptbr.h"
+
+TEST(i18n, todas_las_voces_ptbr_tienen_datos_validos) {
+  CHECK_EQ((int)(sizeof(VOX_CLIPS) / sizeof(VOX_CLIPS[0])), (int)VOX_COUNT);
+  for (int i = 0; i < VOX_COUNT; i++) {
+    CHECK_MSG(VOX_CLIPS[i].data != nullptr, "clip de voz nulo");
+    CHECK_MSG(VOX_CLIPS[i].len > 1000, "clip de voz demasiado corto");
+  }
 }

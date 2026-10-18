@@ -58,8 +58,11 @@ void MockSerial::begin(unsigned long) {}
 static bool gAudioOn = true;
 void audioBegin() {}
 void sfxPlay(uint8_t) {}
+void voxPlay(uint8_t) {}
+void voxPlayDex(int16_t) {}
 void audioSetEnabled(bool on) { gAudioOn = on; }
 bool audioEnabled() { return gAudioOn; }
+void audioSetSleeping(bool) {}
 
 // ---------------- Preferences en memoria ----------------
 typedef std::map<std::string, std::vector<uint8_t> > KV;

@@ -7,10 +7,10 @@
 // con strlen(t)*6 y un caracter de dos bytes descuadraria las etiquetas.
 // No estan en CP437: las mayusculas acentuadas salvo E (\220), ni a~/o~ del portugues.
 enum Lang : uint8_t { LANG_ES = 0, LANG_EN, LANG_FR, LANG_DE, LANG_IT, LANG_PT,
-                     LANG_JA, LANG_KO, LANG_COUNT };
+                     LANG_PT_BR, LANG_JA, LANG_KO, LANG_COUNT };
 // idiomas que necesitan una fuente U8g2 y texto UTF-8 en vez de la tabla CP437
 #define LANG_IS_CJK(l) ((l) == LANG_JA || (l) == LANG_KO)
-#define LANG_DEFAULT LANG_EN  // idioma por defecto: ingles
+#define LANG_DEFAULT LANG_PT_BR  // idioma por defecto: portugues de Brasil
 
 extern Lang gLang;  // idioma activo (definido en i18n.cpp)
 
@@ -60,6 +60,8 @@ enum StrId : uint8_t {
   S_EVO_Q, S_EVO_KEEP, S_FAR_Q, S_FAR_GO, S_FAR_STAY,
   S_CHOOSE_STARTER,  // titulo de la eleccion del inicial (primera vez)
   S_NO_SPRITES, S_LOAD_SPRITES,  // aviso cuando falta el sprite en la SD
+  // etiquetas de accion en pantalla
+  S_ACT_FEED, S_ACT_PLAY, S_ACT_SLEEP, S_ACT_WAKE, S_ACT_BATH, S_CANDY,
   STR_COUNT
 };
 
